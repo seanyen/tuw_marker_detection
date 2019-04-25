@@ -58,6 +58,7 @@ private:
 
     image_transport::ImageTransport imageTransport_;
     image_transport::CameraSubscriber cameraSubscriber_;
+    image_transport::Publisher _image_pub;
 
     tf::TransformBroadcaster transformBroadcaster_;
     ros::Publisher pub_markers_;

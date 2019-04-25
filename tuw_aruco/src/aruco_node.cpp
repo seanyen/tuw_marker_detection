@@ -30,6 +30,7 @@
  */
 
 #include "tuw_aruco/aruco_node.h"
+#include <cv_bridge/cv_bridge.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "arMarker");
@@ -55,7 +56,9 @@ ArUcoNode::ArUcoNode(ros::NodeHandle &n) : n_(n), imageTransport_(n) {
     cameraSubscriber_ = imageTransport_.subscribeCamera("image", 1, &ArUcoNode::imageCallback, this);
     
     if(base_.getParameters().getShowDebugImage()){
-      cv::namedWindow("aruco_node_debug", CV_WINDOW_NORMAL | CV_GUI_NORMAL);
+        image_transport::ImageTransport it(n_);
+        _image_pub = it.advertise("aruco_node/image", 1);
+      //cv::namedWindow("aruco_node_debug", CV_WINDOW_NORMAL | CV_GUI_NORMAL);
     }
 
 }
@@ -199,7 +202,9 @@ void ArUcoNode::imageCallback(const sensor_msgs::ImageConstPtr &image_msg, const
 
 
             // Publish markers
-            publishMarkers(image_msg->header, markerPoses);
+            auto newHeader = image_msg->header;
+            newHeader.frame_id = "winml2_link";
+            publishMarkers(newHeader, markerPoses);
         }
 
 
@@ -217,8 +222,10 @@ void ArUcoNode::imageCallback(const sensor_msgs::ImageConstPtr &image_msg, const
                 aruco::CvDrawingUtils::draw3dAxis(debugImage, markers[i], camParams);
             }
 
-            cv::imshow("aruco_node_debug", debugImage);
-            cv::waitKey(5);
+            //cv::imshow("aruco_node_debug", debugImage);
+            //cv::waitKey(5);
+            sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", debugImage).toImageMsg();
+            _image_pub.publish(msg);    
         }
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR ("cv_bridge exception: %s", e.what());
